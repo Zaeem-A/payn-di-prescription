@@ -1,0 +1,99 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<style>html,body{margin:0;background:#000}iframe{border:0;width:412px;height:915px;display:block}</style></head>
+<body><iframe id="f" src="/app/index.html"></iframe>
+<script>
+const q = new URLSearchParams(location.search);
+const SHOT = q.get('shot') || 'data', SCEN = q.get('scen') || 'normal';
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const f = document.getElementById('f');
+const out = [];
+window.onerror = (m) => { document.title = 'ERR ' + m; };
+
+f.onload = async () => { try {
+  const w = f.contentWindow, d = w.document, A = w.RxApp;
+  w.addEventListener('error', e => { document.title = 'APPERR ' + e.message; });
+  const $ = s => d.querySelector(s), $$ = s => [...d.querySelectorAll(s)];
+  const type = (el, v) => { el.value = v; el.dispatchEvent(new w.Event('input', { bubbles: true })); };
+  const set = (id, v) => type(d.getElementById(id), v);
+  const tap = (sel, text) => { const el = $$(sel).find(x => x.textContent.trim() === text); if (!el) throw new Error('no chip ' + text); el.click(); };
+
+  await w.document.fonts.ready;
+
+  /* ---- patient ---- */
+  set('p-name', 'Muhammad Aslam'); set('p-rel', 'Rahim Bakhsh'); set('p-age', '58');
+  $('[data-single="p-sex"] .chip').click();
+  set('p-city', 'Arifwala'); set('p-mr', 'TN-04182');
+  set('chief', 'Sudden painless loss of vision, right eye — 6 weeks');
+
+  /* ---- drug 1 driven entirely through the real UI ---- */
+  type($('[data-name]'), 'Predforte eye drops');
+  $('[data-dose]').click(); await sleep(50);
+  tap('.tline[data-j="0"] .chip', 'دن میں 4 بار');
+  tap('.tline[data-j="0"] .chip', 'دائیں آنکھ میں');
+  type($('.tline[data-j="0"] [data-dur]'), '7');
+  $('#addline').click(); await sleep(30);
+  tap('.tline[data-j="1"] .chip', 'دن میں 2 بار');
+  tap('.tline[data-j="1"] .chip', 'صبح'); tap('.tline[data-j="1"] .chip', 'رات');
+  type($('.tline[data-j="1"] [data-dur]'), '1'); tap('.tline[data-j="1"] .chip', 'ہفتہ');
+  tap('#pad-end .chip', 'پھر بند کر دیں');
+  out.push('twoDropChips=' + $$('.tline .chip').filter(c => c.textContent.trim() === 'دو قطرے').length);
+  out.push('endings=' + $$('#pad-end .chip').map(c => c.textContent.trim()).join(' / '));
+  out.push('L1=' + $('.tline[data-j="0"] [data-out]').value);
+  out.push('L2=' + $('.tline[data-j="1"] [data-out]').value);
+
+  if (SHOT === 'pad'){ $('.pad .pb').scrollTop = 0; document.title = 'DONE ' + out.join(' | '); return; }
+  $('.pad [data-close]').click(); await sleep(120);
+  out.push('padClosed=' + !$('#padwrap').classList.contains('on'));
+
+  /* ---- remaining drugs seeded via state ---- */
+  const S = A.S;
+  const drug = (name, form, steps, end = '') => { const dr = A.newDrug(); dr.name = name; dr.form = form; dr.end = end;
+    dr.steps = steps.map(s => Object.assign(A.newStep(), s)); return dr; };
+  S.drugs.push(drug('Vigamox eye drops', 'drops', [{ freq: 'دن میں 4 بار', eye: 'دائیں آنکھ میں', dur: '7' }], 'پھر بند کر دیں'));
+  S.drugs.push(drug('', 'drops', [{}]));                                                    // a skipped slot
+  S.drugs.push(drug('Cyclopen eye drops', 'drops', [{ freq: 'دن میں 3 بار', eye: 'دائیں آنکھ میں', dur: '5' }], 'جاری رکھیں'));
+  S.drugs.push(drug('Tab Diamox 250mg', 'other', [{ freq: 'دن میں 2 بار', times: ['صبح', 'رات'], dur: '3' }]));
+
+  if (SCEN === 'long'){
+    const taper = ['دن میں 4 بار', 'دن میں 3 بار', 'دن میں 2 بار', 'دن میں ایک بار'].map(fq => ({ freq: fq, eye: 'دونوں آنکھوں میں', dur: '1', unit: 'hafta' }));
+    ['Nevanac eye drops', 'Timolol eye drops', 'Brimonidine eye drops', 'Tab Vitamin C'].forEach(n => S.drugs.push(drug(n, 'drops', taper, 'پھر بند کر دیں')));
+    S.drugs[0].steps.push(Object.assign(A.newStep(), { freq: 'دن میں ایک بار', dur: '1', unit: 'hafta' }));
+  }
+  A.renderDrugs();
+
+  /* ---- clinical ---- */
+  set('va-r', 'FC'); set('va-l', '6/24');
+  if (SCEN !== 'noiop'){ set('iop-r-pre', '15'); set('iop-l-pre', '17'); }
+  set('h-sys', SCEN === 'long' ? 'BP 140/80, Type 2 DM 9 yrs on Metformin + Insulin, IHD with CABG 2019, CKD stage 3, Hypothyroid on Thyroxine 75mcg' : 'BP 140/80, Diabetic 9 yrs');
+  set('h-ocu', 'Cataract extraction 22/07/26');
+  set('ex-lens-r', 'IOL'); set('ex-lens-l', 'Cataract'); set('ex-ac-r', 'Cells +'); set('ex-ac-l', 'Clear');
+  set('ex-vit-r', 'Debris, Haze'); set('ex-fundus-r', 'Hazy view'); set('ex-fundus-l', 'Normal');
+  set('a-inv-oc', 'OCT macula both eyes, B-scan right eye');
+  set('a-inv-sys', 'CBC · Blood Sugar · Anti HCV · HBsAg');
+  set('a-proc', 'PPV + Intravitreal antibiotics — Right Eye');
+  set('ref-r-sph', '2'); set('ref-r-cyl', '0.5'); set('ref-r-axis', '95'); set('ref-r-va', '6/18');
+  $('[data-sign="ref-l-sph"]').click(); set('ref-l-sph', '1.25');                // flipped to plus
+  set('ref-r-add', '2.5'); set('ref-l-add', '2.5'); set('ref-r-near', 'N6'); set('ref-l-near', 'N8');
+  set('fu', '2026-09-28');
+
+  if (SHOT === 'top'){ d.scrollingElement.scrollTop = 0; document.title = 'DONE top'; return; }
+  if (SHOT === 'form'){ d.querySelectorAll('details').forEach(x => x.open = false); d.querySelector('#drugs').closest('details').open = true; d.scrollingElement.scrollTop = 1e6;
+    document.title = 'DONE ' + out.join(' | '); return; }
+
+  /* ---- preview + pdf ---- */
+  await A.openPreview();
+  for (let i = 0; i < 400 && !A.pdf(); i++) await sleep(50);
+  out.push('pages=' + A.pages());
+  out.push('presentingField=' + !!d.getElementById('h-pres') + ' presentingOnSheet=' + d.querySelector('#live').textContent.includes('PRESENTING'));
+  const ch = d.querySelector('#live .s-chief'), cs = ch && w.getComputedStyle(ch);
+  out.push('chiefColour=' + (cs ? (cs.backgroundColor !== 'rgba(0, 0, 0, 0)' || cs.borderLeftWidth !== '0px') : 'none'));
+  out.push('iopTable=' + !!d.querySelector('#live .s-iop') + ' nearCol=' + d.querySelector('#live').textContent.includes('Near Vision'));
+  const caps = [...d.querySelectorAll('#live .pg1 .s-cap, #live .pg1 .s-sec, #live .pg1 .s-rx-h')].map(x => x.textContent.trim().split(/\s+/)[0]);
+  out.push('order=' + caps.join('>'));
+  out.push('pdf=' + (A.pdf() ? Math.round(A.pdf().size / 1024) + 'KB' : 'NONE'));
+  out.push('sendBtn=' + $('#pv-send').textContent);
+  out.push('drugsOnSheet=' + [...d.querySelectorAll('#live .s-drug .t')].map(x => x.textContent).join(','));
+  if (A.pdf()) await fetch(`/.qa/out-${SCEN}.pdf`, { method: 'PUT', body: A.pdf() });
+  document.title = 'DONE ' + out.join(' | ');
+} catch (e) { document.title = 'ERR ' + e.message; } };
+</script></body></html>

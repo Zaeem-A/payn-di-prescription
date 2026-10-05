@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Prescription Template</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Noto+Nastaliq+Urdu:wght@400;600&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   GEOMETRY — measured off the Canva vector PDF at 300dpi.
+   Header art ends 42.6mm · footer rule begins 270.2mm
+   BRAND — colours sampled from that same vector:
+   #1C2020 dark bar · #C07834 orange wedge · #585858 grey text
+   ============================================================ */
+:root{
+  --page-w:210mm; --page-h:297mm;
+
+  --lh-top:43mm; --lh-bottom:27mm; --safety:3mm; --side:16mm;
+  --body-top: calc(var(--lh-top) + var(--safety));                                       /* 46mm  */
+  --body-w:   calc(var(--page-w) - var(--side)*2);                                       /* 178mm */
+  --body-h:   calc(var(--page-h) - var(--lh-top) - var(--lh-bottom) - var(--safety)*2);  /* 221mm */
+
+  --col-left:70mm; --col-gap:6mm;
+
+  /* vertical rhythm - auto-fit compresses these, see fitToPage() */
+  --row-gap:3mm; --drug-gap:3mm; --fill-h:5.4mm; --dose-h:8.4mm; --sec-gap:2.6mm;
+
+  --bar:#1C2020;        /* letterhead black bar   */
+  --accent:#C07834;     /* letterhead orange wedge */
+  --ink:#1C2020;
+  --label:#585858;      /* letterhead body grey    */
+  --rule:#A8A8A8;
+}
+*{ box-sizing:border-box; margin:0; padding:0; }
+
+body{
+  background:#6a6a6a; padding:64px 0 24px;
+  font-family:'Montserrat','Helvetica Neue',Arial,sans-serif;
+  color:var(--ink);
+}
+
+/* ---------------- sheet ---------------- */
+.page{
+  position:relative; width:var(--page-w); height:var(--page-h);
+  margin:0 auto 24px; background:#fff; overflow:hidden;
+  box-shadow:0 2px 18px rgba(0,0,0,.45);
+}
+.page::before{                       /* send mode composites the letterhead in */
+  content:""; position:absolute; inset:0; display:none;
+  background:url('letterhead.png') center/100% 100% no-repeat;
+}
+body.mode-send .page::before{ display:block; }
+
+body.show-zones .page::after{
+  content:""; position:absolute; inset:0; pointer-events:none;
+  border-top:var(--lh-top) solid rgba(192,120,52,.18);
+  border-bottom:var(--lh-bottom) solid rgba(192,120,52,.18);
+}
+
+.body-box{
+  position:absolute; top:var(--body-top); left:var(--side);
+  width:var(--body-w); height:var(--body-h);
+  display:flex; flex-direction:column;
+}
+
+/* ---------------- field furniture ---------------- */
+.lbl{ font-size:6.2pt; font-weight:600; color:var(--label); letter-spacing:.04em; }
+.fill{
+  flex:1; min-width:0; border-bottom:.35pt dotted var(--rule);
+  font-size:8pt; line-height:1.45; padding:0 1mm .4mm; min-height:var(--fill-h);
+}
+.eye{ font-size:6.2pt; font-weight:700; color:var(--accent); padding-right:.6mm; }
+
+/* section heading — dark label, orange rule, small wedge echoing the letterhead */
+.sec{
+  display:flex; align-items:center; gap:1.8mm;
+  font-size:7pt; font-weight:700; letter-spacing:.11em; text-transform:uppercase;
+  color:var(--bar); margin:var(--sec-gap) 0 1.6mm;
+}
+.sec::before{
+  content:""; width:2.2mm; height:2.2mm; flex:0 0 auto; background:var(--accent);
+  clip-path:polygon(0 0, 100% 0, 100% 100%);       /* the letterhead's wedge motif */
+}
+.sec::after{ content:""; flex:1; height:.9pt; background:var(--accent); opacity:.55; }
+
+/* ---------------- patient bar ---------------- */
+.patient{
+  flex:0 0 auto; border-top:1.6pt solid var(--bar); border-bottom:.5pt solid var(--rule);
+  padding:1.5mm 0 1.6mm; display:flex; flex-direction:column; gap:1.3mm;
+}
+.prow{ display:flex; align-items:flex-end; gap:2.5mm; }
+.field{ display:flex; align-items:flex-end; gap:1mm; }
+.f-name{ flex:3.2; } .f-rel{ flex:2.4; } .f-city{ flex:1.8; }
+.f-age{ width:16mm; } .f-sex{ width:18mm; } .f-mr{ width:26mm; } .f-date{ width:44mm; }
+.f-date .fill{ border-bottom-style:solid; font-size:7.2pt; white-space:nowrap; }
+
+/* ---------------- chief complaint ---------------- */
+.chief{
+  flex:0 0 auto; display:flex; align-items:flex-end; gap:1.5mm;
+  margin-top:2mm; padding:1mm 1.5mm 0;
+  border-left:1.2mm solid var(--accent); background:rgba(192,120,52,.055);
+}
+.chief .lbl{ font-size:6.6pt; font-weight:700; color:var(--bar); letter-spacing:.08em; }
+.chief .fill{ border-bottom-style:solid; border-bottom-color:var(--rule); min-height:6mm; font-size:8.5pt; }
+
+/* ---------------- columns ---------------- */
+.cols{ flex:1; display:flex; gap:var(--col-gap); min-height:0; padding-top:1.5mm; }
+.clinical{ width:var(--col-left); flex:0 0 auto; display:flex; flex-direction:column; }
+.rx{ flex:1; display:flex; flex-direction:column; border-left:.4pt solid #DEDEDE; padding-left:var(--col-gap); }
+
+.row{ display:flex; align-items:flex-end; gap:1mm; margin-bottom:var(--row-gap); }
+.row > .lbl{ width:20mm; flex:0 0 auto; font-size:6pt; }
+.row.wide > .lbl{ width:auto; }
+.pair{ flex:1; display:flex; gap:1.5mm; min-width:0; }
+.pair > span{ display:flex; align-items:flex-end; flex:1; min-width:0; }
+
+/* IOP grid — dark header row, matching the letterhead bar */
+table.iop{ width:100%; border-collapse:collapse; margin-bottom:2.5mm; }
+table.iop th,table.iop td{ border:.35pt solid var(--rule); text-align:center; padding:.5mm .2mm; }
+table.iop th{ background:var(--bar); color:#fff; font-size:5.8pt; font-weight:600; letter-spacing:.05em; border-color:var(--bar); }
+table.iop td{ height:5.4mm; font-size:7.5pt; color:var(--ink); }
+table.iop td:first-child{ font-weight:700; font-size:6.2pt; color:var(--accent); width:11mm; }
+
+/* ---------------- Rx column ---------------- */
+.rx-head{
+  font-family:Georgia,'Times New Roman',serif; font-size:21pt; font-weight:700;
+  line-height:1; letter-spacing:.03em; color:var(--bar); margin-bottom:2.5mm;
+}
+.rx-head span{ color:var(--accent); }
+.drug{ margin-bottom:var(--drug-gap); }
+.drug-line{ display:flex; align-items:flex-end; gap:1.2mm; }
+.drug-no{ font-size:7.5pt; font-weight:700; color:var(--accent); width:5mm; flex:0 0 auto; }
+.drug-line .fill{ min-height:5.4mm; border-bottom-style:solid; border-bottom-color:#C4C4C4; }
+.dose{
+  font-family:'Noto Nastaliq Urdu',serif; direction:rtl; text-align:right;
+  font-size:8pt; line-height:1.9; min-height:var(--dose-h);
+  margin:.5mm 0 0 6.2mm; padding:0 1mm .5mm;
+  border-bottom:.35pt dotted var(--rule); color:#333;
+}
+
+/* ---------------- advised (sits in the clinical column) ---------------- */
+.advise{ margin-top:auto; }
+.advise .fill{ display:block; min-height:var(--fill-h); margin-bottom:1.4mm; }
+
+/* ---------------- refraction card ---------------- */
+.refraction{
+  flex:0 0 auto; width:116mm; margin:2.5mm auto 0;
+  border:.5pt solid var(--rule); border-top:1.6pt solid var(--bar);
+}
+.refraction .cap{
+  background:var(--bar); color:#fff; font-size:6pt; font-weight:700;
+  letter-spacing:.14em; text-transform:uppercase; padding:.9mm 2mm;
+  display:flex; align-items:center; gap:2mm;
+}
+.refraction .cap em{ margin-left:auto; font-style:normal; font-weight:500; opacity:.7; letter-spacing:.06em; }
+table.ref{ width:100%; border-collapse:collapse; }
+table.ref th,table.ref td{ border:.35pt solid var(--rule); text-align:center; padding:.4mm; }
+table.ref th{ font-size:5.8pt; font-weight:600; color:var(--label); letter-spacing:.05em; background:#F6F6F6; }
+table.ref td{ height:5.2mm; font-size:7.5pt; }
+table.ref td:first-child,table.ref th:first-child{ width:16mm; font-weight:700; font-size:6.2pt; color:var(--accent); }
+
+/* ---------------- follow-up ---------------- */
+.followup{
+  flex:0 0 auto; border-top:1.6pt solid var(--bar);
+  margin-top:2.5mm; padding-top:1.4mm; display:flex; align-items:flex-end; gap:3mm;
+}
+.followup .f-fu{ width:40mm; }
+.followup .f-fu .fill{ border-bottom-style:solid; }
+.followup .note{ margin-left:auto; font-size:6.2pt; color:var(--label); font-style:italic; }
+
+/* ---------------- FINAL (patient-facing) mode ----------------
+   Blank rules look like an unfinished form. For the copy the patient
+   receives, empty fields lose their rule and skipped drugs collapse. */
+body.mode-final .fill:empty,
+body.mode-final .dose:empty{ border-bottom-color:transparent; }
+body.mode-final .drug.skipped{ display:none; }
+body.mode-final .dose:empty{ min-height:0; margin-top:0; }
+
+/* ---------------- auto-fit compression steps ---------------- */
+body.tight-1{ --row-gap:2.2mm; --drug-gap:2.2mm; --fill-h:5mm;   --dose-h:8mm;   --sec-gap:2mm; }
+body.tight-2{ --row-gap:1.6mm; --drug-gap:1.6mm; --fill-h:4.6mm; --dose-h:7.6mm; --sec-gap:1.5mm; }
+body.tight-3{ --row-gap:1.1mm; --drug-gap:1.1mm; --fill-h:4.2mm; --dose-h:7.2mm; --sec-gap:1.1mm; }
+
+/* page 2 only exists once something spills onto it */
+.page.spill{ display:none; }
+.page.spill.active{ display:block; }
+.page.spill .body-box{ top:var(--body-top); }
+.page.spill .advise{ margin-top:0; }   /* don't carry the bottom-pin across */
+.page.spill .refraction{ margin-top:4mm; }
+/* pre-send guard — the only thing the doctor should ever be told about
+   the layout is that it will arrive as two sheets, not one */
+.ask{
+  position:fixed; inset:0; z-index:70; display:none;
+  background:rgba(12,14,14,.55); align-items:center; justify-content:center;
+}
+.ask.show{ display:flex; }
+.ask-card{
+  width:330px; background:#fff; border-radius:4px; overflow:hidden;
+  box-shadow:0 12px 40px rgba(0,0,0,.4); font-size:12.5px;
+}
+.ask-card h4{
+  background:var(--bar); color:#fff; font-size:11px; font-weight:700;
+  letter-spacing:.12em; text-transform:uppercase; padding:10px 16px;
+  display:flex; align-items:center; gap:8px;
+}
+.ask-card h4::before{
+  content:""; width:8px; height:8px; background:var(--accent);
+  clip-path:polygon(0 0,100% 0,100% 100%);
+}
+.ask-card p{ padding:16px; line-height:1.55; color:#333; }
+.ask-card p b{ color:var(--bar); }
+.ask-row{ display:flex; gap:8px; padding:0 16px 16px; }
+.ask-row button{
+  flex:1; padding:9px 10px; font-family:inherit; font-size:11.5px; font-weight:600;
+  border:1px solid var(--bar); border-radius:3px; cursor:pointer;
+}
+.ask-row .go{ background:var(--bar); color:#fff; }
+.ask-row .no{ background:#fff; color:var(--bar); }
+@media print{ .ask{ display:none !important; } }
+
+/* ---------------- screen chrome ---------------- */
+.bar-ui{
+  position:fixed; top:0; left:0; right:0; z-index:50; background:var(--bar); color:#fff;
+  display:flex; gap:18px; align-items:center; padding:10px 18px; font-size:12px;
+}
+.bar-ui strong{ font-weight:600; letter-spacing:.08em; text-transform:uppercase; font-size:11px; color:var(--accent); }
+.bar-ui label{ display:flex; gap:6px; align-items:center; cursor:pointer; }
+
+@media print{
+  body{ background:#fff; padding:0; }
+  .bar-ui{ display:none; }
+  .page{ margin:0; box-shadow:none; }
+  @page{ size:A4; margin:0; }
+}
+</style>
+</head>
+<body class="mode-print">
+
+<div class="bar-ui">
+  <strong>Prescription template</strong>
+  <label><input type="checkbox" id="t-lh"> Letterhead <em>(send mode)</em></label>
+  <label><input type="checkbox" id="t-zones"> Reserved zones</label>
+  <label><input type="checkbox" id="t-data"> Sample data</label>
+  <label><input type="checkbox" id="t-final"> Patient copy <em>(hide blanks)</em></label>
+  <button id="send" style="margin-left:auto;background:var(--accent);color:#fff;border:0;
+    padding:6px 14px;border-radius:3px;font:600 11px/1 inherit;letter-spacing:.08em;
+    text-transform:uppercase;cursor:pointer">Send</button>
+  <span style="opacity:.6">A4 · body 178 × 221 mm</span>
+</div>
+
+<div class="page">
+  <div class="body-box">
+
+    <!-- ===== PATIENT ===== -->
+    <div class="patient">
+      <div class="prow">
+        <div class="field f-name"><span class="lbl">NAME</span><span class="fill" data-s="Muhammad Aslam"></span></div>
+        <div class="field f-rel"><span class="lbl">S/o · W/o · D/o</span><span class="fill" data-s="Rahim Bakhsh"></span></div>
+        <div class="field f-age"><span class="lbl">AGE</span><span class="fill" data-s="58 y"></span></div>
+        <div class="field f-sex"><span class="lbl">SEX</span><span class="fill" data-s="Male"></span></div>
+      </div>
+      <div class="prow">
+        <div class="field f-city"><span class="lbl">CITY</span><span class="fill" data-s="Arifwala"></span></div>
+        <div class="field f-mr"><span class="lbl">MR NO.</span><span class="fill" data-s="TN-04182"></span></div>
+        <div class="field f-date" style="margin-left:auto"><span class="lbl">DATE</span><span class="fill" data-s="21/09/2026 &nbsp; 4:41 pm"></span></div>
+      </div>
+    </div>
+
+    <!-- ===== CHIEF COMPLAINT ===== -->
+    <div class="chief">
+      <span class="lbl">CHIEF COMPLAINT</span>
+      <span class="fill" data-s="Sudden painless loss of vision, right eye — 6 weeks"></span>
+    </div>
+
+    <div class="cols">
+
+      <!-- ===== CLINICAL ===== -->
+      <div class="clinical">
+        <div class="row"><span class="lbl">VA</span>
+          <span class="pair">
+            <span><span class="eye">(R)</span><span class="fill" data-s="FC"></span></span>
+            <span><span class="eye">(L)</span><span class="fill" data-s="6/24"></span></span>
+          </span></div>
+
+        <table class="iop">
+          <tr><th>IOP</th><th>Pre</th><th>Pachy</th><th>CF</th><th>Final</th></tr>
+          <tr><td>(R)</td><td data-s="15"></td><td></td><td></td><td></td></tr>
+          <tr><td>(L)</td><td data-s="17"></td><td></td><td></td><td></td></tr>
+        </table>
+
+        <div class="sec">History</div>
+        <div class="row wide"><span class="lbl">SYSTEMIC</span><span class="fill" data-s="BP 140/80, Diabetic 9 yrs"></span></div>
+        <div class="row wide"><span class="lbl">OCULAR</span><span class="fill" data-s="Cataract extraction 22/07/26"></span></div>
+        <div class="row wide"><span class="lbl">PRESENTING</span><span class="fill" data-s="Deterioration of vision 08/08/26"></span></div>
+
+        <div class="sec">Examination</div>
+        <div class="row"><span class="lbl">LENS</span><span class="pair">
+          <span><span class="eye">(R)</span><span class="fill" data-s="IOL"></span></span>
+          <span><span class="eye">(L)</span><span class="fill" data-s="Cataract"></span></span></span></div>
+        <div class="row"><span class="lbl">AC</span><span class="pair">
+          <span><span class="eye">(R)</span><span class="fill" data-s="Cells +"></span></span>
+          <span><span class="eye">(L)</span><span class="fill" data-s="Clear"></span></span></span></div>
+        <div class="row"><span class="lbl">CORNEA</span><span class="pair">
+          <span><span class="eye">(R)</span><span class="fill" data-s="Clear"></span></span>
+          <span><span class="eye">(L)</span><span class="fill" data-s="Clear"></span></span></span></div>
+        <div class="row"><span class="lbl">CONJUNCTIVA</span><span class="pair">
+          <span><span class="eye">(R)</span><span class="fill"></span></span>
+          <span><span class="eye">(L)</span><span class="fill" data-s="Pterygium"></span></span></span></div>
+        <div class="row"><span class="lbl">VITREOUS</span><span class="pair">
+          <span><span class="eye">(R)</span><span class="fill" data-s="Debris, Haze"></span></span>
+          <span><span class="eye">(L)</span><span class="fill"></span></span></span></div>
+        <div class="row"><span class="lbl">FUNDUS</span><span class="pair">
+          <span><span class="eye">(R)</span><span class="fill" data-s="Hazy view"></span></span>
+          <span><span class="eye">(L)</span><span class="fill" data-s="Normal"></span></span></span></div>
+
+        <div class="advise">
+          <div class="sec">Investigations</div>
+          <div class="fill" data-s="CBC · Blood Sugar · Anti HCV · HBsAg"></div>
+          <div class="fill"></div>
+          <div class="sec">Procedure / Surgery</div>
+          <div class="fill" data-s="PPV + Intravitreal antibiotics — Right Eye"></div>
+          <div class="fill"></div>
+        </div>
+      </div>
+
+      <!-- ===== Rx ===== -->
+      <div class="rx">
+        <div class="rx-head">R<span style="font-size:13pt">x</span></div>
+        <div id="drugs"></div>
+      </div>
+    </div>
+
+    <!-- ===== REFRACTION CARD ===== -->
+    <div class="refraction">
+      <div class="cap">Refraction / Glasses <em>optional</em></div>
+      <table class="ref">
+        <tr><th></th><th>Sph</th><th>Cyl</th><th>Axis</th><th>VA</th><th>Add</th></tr>
+        <tr><td>RIGHT</td><td data-s="-2.00"></td><td data-s="-0.50"></td><td data-s="95"></td><td data-s="6/18"></td><td data-s="+2.50"></td></tr>
+        <tr><td>LEFT</td><td data-s="-4.00"></td><td></td><td></td><td data-s="6/24"></td><td data-s="+2.50"></td></tr>
+      </table>
+    </div>
+
+    <!-- ===== FOLLOW-UP ===== -->
+    <div class="followup">
+      <div class="field f-fu"><span class="lbl">FOLLOW-UP</span><span class="fill" data-s="28/09/2026"></span></div>
+      <span class="note">Please bring this prescription on your next visit.</span>
+    </div>
+
+  </div>
+</div>
+
+<div class="page spill">
+  <div class="body-box"><div id="spill-target" style="display:flex;flex-direction:column;height:100%"></div></div>
+</div>
+
+<div class="ask" id="ask">
+  <div class="ask-card">
+    <h4>Before sending</h4>
+    <p>This prescription is <b>2 pages</b>. The patient will receive both sheets.<br><br>
+       Shortening the history or investigations will usually bring it back to one.</p>
+    <div class="ask-row">
+      <button class="no" id="ask-no">Go back</button>
+      <button class="go" id="ask-go">Send both pages</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const MAX_DRUGS = 8;
+
+/* Rx slots are generated so the app can drive count/skip from one place */
+const SAMPLE = [
+  ['PREDFORTE EYE DROPS', 'ایک قطرہ دن میں چھ مرتبہ ۔ دائیں آنکھ میں'],
+  ['VIGAMOX EYE DROPS',   'ایک قطرہ دن میں چھ مرتبہ ۔ دائیں آنکھ میں'],
+  ['CYCLOPEN EYE DROPS',  'دن میں تین بار ۔ دائیں آنکھ میں'],
+];
+$('#drugs').innerHTML = Array.from({length: MAX_DRUGS}, (_, i) => {
+  const [d, u] = SAMPLE[i] || ['', ''];
+  return `<div class="drug">
+    <div class="drug-line"><span class="drug-no">${i+1}.</span><span class="fill"${d?` data-s="${d}"`:''}></span></div>
+    <div class="dose"${u?` data-s="${u}"`:''}></div>
+  </div>`;
+}).join('');
+
+const fillData = on => document.querySelectorAll('[data-s]').forEach(n => {
+  n.innerHTML = on ? n.dataset.s : '';
+});
+/* a drug slot the doctor skipped (blank name) collapses in the patient copy */
+const markSkipped = () => document.querySelectorAll('.drug').forEach(d => {
+  d.classList.toggle('skipped', !d.querySelector('.drug-line .fill').textContent.trim());
+});
+
+/* ============================================================
+   AUTO-FIT — a clinical field can hold one word or four lines, so the
+   layout has to absorb the difference. Order of defence:
+     1. fields grow naturally (CSS)
+     2. compress the vertical rhythm in 3 steps
+     3. spill whole blocks onto page 2 — never split a block
+   ============================================================ */
+const SPILLABLE = ['.advise', '.refraction'].map(s => document.querySelector(s));
+const HOME = new Map(SPILLABLE.map(el => [el, [el.parentNode, el.nextSibling]]));
+
+/* Worst overflow in px. Two different boundaries can be breached:
+   - a column's content outgrowing the .cols block, which lands it on the
+     refraction card sitting below (this is the common one)
+   - the body box itself being outgrown at the very bottom            */
+function overflowOf(){
+  const page = document.querySelector('.page:not(.spill)');
+  const cols = page.querySelector('.cols');
+  const box  = page.querySelector('.body-box');
+  let worst = 0;
+
+  const colsBottom = cols.getBoundingClientRect().bottom;
+  cols.querySelectorAll('.clinical, .rx').forEach(col => {
+    const last = col.lastElementChild;
+    if (last) worst = Math.max(worst, last.getBoundingClientRect().bottom - colsBottom);
+  });
+
+  const boxBottom = box.getBoundingClientRect().bottom;
+  box.querySelectorAll('.refraction, .followup').forEach(el => {
+    worst = Math.max(worst, el.getBoundingClientRect().bottom - boxBottom);
+  });
+  return worst;
+}
+
+function fitToPage(){
+  const b = document.body;
+  const spill = document.querySelector('.page.spill');
+  const target= document.getElementById('spill-target');
+  const TIERS = ['tight-1','tight-2','tight-3'];
+
+  /* reset to pristine before re-measuring */
+  b.classList.remove(...TIERS);
+  SPILLABLE.forEach(el => { const [par, next] = HOME.get(el); par.insertBefore(el, next); });
+  spill.classList.remove('active');
+
+  if (overflowOf() <= 1) return 'ok';
+
+  for (const t of TIERS){
+    b.classList.remove(...TIERS); b.classList.add(t);
+    if (overflowOf() <= 1) return t;          /* silent — doctor needn't know */
+  }
+
+  for (const el of SPILLABLE){
+    target.appendChild(el);
+    spill.classList.add('active');
+    if (overflowOf() <= 1) return 'spill';
+  }
+  return 'over';
+}
+
+const q = new URLSearchParams(location.search);
+if (q.get('lh')    === '1'){ document.body.classList.add('mode-send');  $('#t-lh').checked = true; }
+if (q.get('zones') === '1'){ document.body.classList.add('show-zones'); $('#t-zones').checked = true; }
+if (q.get('data')  === '1'){ fillData(true);                            $('#t-data').checked = true; }
+if (q.get('final') === '1'){ document.body.classList.add('mode-final'); $('#t-final').checked = true; }
+markSkipped();
+
+function refit(){
+  window.__fit = fitToPage();
+  document.documentElement.dataset.fit = window.__fit;
+  return window.__fit;
+}
+
+/* fonts change glyph metrics, so only measure once they've loaded */
+(document.fonts ? document.fonts.ready : Promise.resolve()).then(refit);
+
+/* ============================================================
+   SEND GUARD — auto-fit is deliberately silent; the doctor does not
+   need to know the layout compressed. A 2-page result is different:
+   he is the one the patient replies to, so he is asked first.
+   The app swaps `handler` for the real WhatsApp/PDF step.
+   ============================================================ */
+window.Rx = {
+  refit,
+  pages: () => document.querySelector('.page.spill').classList.contains('active') ? 2 : 1,
+  send(handler = () => window.print()){
+    refit();                                   // measure now, not from stale state
+    if (this.pages() === 1) return handler();  // one page: send with no interruption
+
+    const ask = document.getElementById('ask');
+    ask.classList.add('show');
+    document.getElementById('ask-go').onclick = () => { ask.classList.remove('show'); handler(); };
+    document.getElementById('ask-no').onclick = () => ask.classList.remove('show');
+  }
+};
+
+$('#t-lh').onchange    = e => document.body.classList.toggle('mode-send', e.target.checked);
+$('#t-zones').onchange = e => document.body.classList.toggle('show-zones', e.target.checked);
+$('#t-final').onchange = e => { document.body.classList.toggle('mode-final', e.target.checked); refit(); };
+$('#t-data').onchange  = e => { fillData(e.target.checked); markSkipped(); refit(); };
+$('#send').onclick     = () => window.Rx.send();
+</script>
+</body>
+</html>

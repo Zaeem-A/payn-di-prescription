@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1">
+<meta name="theme-color" content="#3F5D70">
+<title>Prescription</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="stylesheet" href="sheet.css">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+
+<header class="top">
+  <h1>Prescription<span>.</span></h1>
+  <button class="new" id="new">New</button>
+  <button class="go" id="preview">Preview</button>
+</header>
+
+<main>
+  <!-- sections follow the sheet's top-to-bottom order -->
+
+  <!-- ============ PATIENT ============ -->
+  <details class="sec" open>
+    <summary>Patient</summary>
+    <div class="body">
+      <div class="f"><label for="p-name">Name</label><input type="text" id="p-name" autocomplete="off"></div>
+      <div class="f"><label for="p-rel">S/o · W/o · D/o</label>
+        <div class="chips tight" data-single="rel">
+          <button class="chip" data-v="S/o">S/o</button>
+          <button class="chip" data-v="W/o">W/o</button>
+          <button class="chip" data-v="D/o">D/o</button>
+        </div>
+        <input type="text" id="p-rel" autocomplete="off" placeholder="Father / husband name">
+      </div>
+      <div class="grid">
+        <!-- one field: sex is typed here as M or F, so the keyboard must have letters -->
+        <div class="f"><label for="p-age">Age &amp; sex</label><input type="text" id="p-age" autocomplete="off" placeholder="58 F"></div>
+        <div class="f"><label for="p-mr">MR No.</label><input type="text" id="p-mr" autocomplete="off"></div>
+      </div>
+      <div class="f"><label for="p-addr">Address</label><input type="text" id="p-addr" autocomplete="off"></div>
+    </div>
+  </details>
+
+  <!-- ============ CHIEF COMPLAINT ============ -->
+  <details class="sec" open>
+    <summary>Chief Complaint</summary>
+    <div class="body"><div class="f"><textarea id="chief" placeholder="Why the patient came in today"></textarea></div></div>
+  </details>
+
+  <!-- ============ VISION & PRESSURE ============ -->
+  <details class="sec">
+    <summary>Vision &amp; Pressure</summary>
+    <div class="body">
+      <div class="f"><label>Visual acuity</label>
+        <div class="eyepair"><b>R</b><input type="text" id="va-r"><b>L</b><input type="text" id="va-l"></div>
+      </div>
+      <!-- Final fills itself with Pre + CF; typing in it takes it over -->
+      <div class="f"><label>IOP — right</label>
+        <div class="grid-3">
+          <input type="text" inputmode="decimal" id="iop-r-pre" placeholder="Pre">
+          <input type="text" inputmode="numeric" id="iop-r-pachy" placeholder="Pachy">
+          <div class="sgn"><button type="button" data-sign="iop-r-cf">+</button><input type="text" inputmode="decimal" id="iop-r-cf" placeholder="CF"></div>
+        </div>
+        <div style="margin-top:8px"><input type="text" inputmode="decimal" id="iop-r-final" data-final placeholder="Final = Pre + CF"></div>
+      </div>
+      <div class="f"><label>IOP — left</label>
+        <div class="grid-3">
+          <input type="text" inputmode="decimal" id="iop-l-pre" placeholder="Pre">
+          <input type="text" inputmode="numeric" id="iop-l-pachy" placeholder="Pachy">
+          <div class="sgn"><button type="button" data-sign="iop-l-cf">+</button><input type="text" inputmode="decimal" id="iop-l-cf" placeholder="CF"></div>
+        </div>
+        <div style="margin-top:8px"><input type="text" inputmode="decimal" id="iop-l-final" data-final placeholder="Final = Pre + CF"></div>
+      </div>
+    </div>
+  </details>
+
+  <!-- ============ REFRACTION ============ -->
+  <details class="sec">
+    <summary>Refraction</summary>
+    <div class="body" id="refr"></div>
+  </details>
+
+  <!-- ============ HISTORY ============ -->
+  <details class="sec">
+    <summary>History</summary>
+    <div class="body">
+      <div class="f"><label for="h-sys">Systemic</label><textarea id="h-sys"></textarea></div>
+      <div class="f"><label for="h-ocu">Ocular</label><textarea id="h-ocu"></textarea></div>
+    </div>
+  </details>
+
+  <!-- ============ EXAMINATION ============ -->
+  <details class="sec">
+    <summary>Examination</summary>
+    <div class="body" id="exam"></div>
+  </details>
+
+  <!-- ============ INVESTIGATIONS & PROCEDURE ============ -->
+  <details class="sec">
+    <summary>Investigations &amp; Procedure</summary>
+    <div class="body">
+      <div class="f"><label for="a-inv-oc">Ocular investigations</label><textarea id="a-inv-oc" placeholder="OCT, B-scan, FFA…"></textarea></div>
+      <div class="f"><label for="a-inv-sys">Systemic investigations</label><textarea id="a-inv-sys" placeholder="CBC, blood sugar, HbA1c…"></textarea></div>
+      <div class="f"><label for="a-proc">Procedure / Surgery</label><textarea id="a-proc"></textarea></div>
+    </div>
+  </details>
+
+  <!-- ============ Rx ============ -->
+  <details class="sec" open>
+    <summary>Rx <span class="count" id="rx-count"></span></summary>
+    <div class="body">
+      <div id="drugs"></div>
+      <button class="addrug" id="adddrug">+ Add drug</button>
+    </div>
+  </details>
+
+  <!-- ============ HIDAYAT ============ -->
+  <details class="sec">
+    <summary>Hidayat <span class="urh">ہدایات</span></summary>
+    <div class="body">
+      <div class="chips" id="hid-sets"></div>
+      <div class="f" style="margin-top:10px">
+        <textarea id="hid" class="ur" dir="rtl" lang="ur" placeholder="ہدایات · tap a button above, then edit freely"></textarea>
+      </div>
+    </div>
+  </details>
+
+  <!-- ============ FOLLOW-UP ============ -->
+  <details class="sec">
+    <summary>Follow-up</summary>
+    <div class="body"><div class="f"><label for="fu">Review date</label><input type="date" id="fu"></div></div>
+  </details>
+</main>
+
+<!-- ============ DOSAGE PAD ============ -->
+<div class="sheetwrap" id="padwrap">
+  <div class="scrim" data-close></div>
+  <div class="pad">
+    <div class="ph"><b id="pad-title">Dosage</b><button class="done" data-close>Done</button></div>
+    <div class="pb">
+      <div class="grp"><span>Form</span><div class="chips" id="pad-form">
+        <button class="chip on" data-v="drops">Drops</button>
+        <button class="chip" data-v="other">Tablet / Other</button>
+      </div></div>
+      <div id="tlines"></div>
+      <button class="addline" id="addline">+ پھر — add next step</button>
+      <div class="grp"><span>Ending</span><div class="chips" id="pad-end"></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ PREVIEW ============ -->
+<div class="pv" id="pv">
+  <div class="ph">
+    <button class="back" id="pv-back">←</button>
+    <b>Patient copy</b>
+    <button class="send" id="pv-send">Send</button>
+  </div>
+  <div class="warn" id="pv-warn" hidden>Too long — the bottom is cut off. Shorten the history, investigations or Hidayat, then preview again.</div>
+  <div class="scroll"><div id="sizer"><div class="stage" id="stage"></div></div></div>
+</div>
+
+<!-- ============ 2-PAGE WARNING ============ -->
+<div class="ask" id="ask">
+  <div class="askc">
+    <h4>Before sending</h4>
+    <p>This prescription is <b id="ask-n">2 pages</b>. The patient will receive every sheet.<br><br>
+       Shortening the history or investigations usually brings it back to one.</p>
+    <div class="askr"><button id="ask-no">Go back</button><button class="go" id="ask-go">Send both</button></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<div id="live"></div>
+
+<script src="vendor/html2canvas.min.js"></script>
+<script src="vendor/jspdf.umd.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

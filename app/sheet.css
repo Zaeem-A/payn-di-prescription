@@ -1,0 +1,188 @@
+/* ============================================================
+   THE A4 SHEET — the thing the patient receives.
+   The letterhead is drawn here in CSS, rebuilt from Dr-Talha-Nafees-Letterhead.pdf
+   ("Dusty Blue") — that file was a browser export with the wrong font
+   (Liberation Sans fallback) and bars that stopped 4.6mm short of both edges.
+   Rebuilt: Montserrat, full-bleed bars, one 16mm margin for header, body and footer.
+   Header ends 24mm · footer rule at 281.5mm. Colours sampled from the PDF.
+   Reading order, top to bottom:
+     patient · chief complaint · vision | pressure · clinical · investigations
+     · procedure · Rx · refraction (bottom centre) · follow-up
+   ============================================================ */
+@font-face{ font-family:'Montserrat'; src:url('fonts/Montserrat-400.woff2') format('woff2'); font-weight:400; font-display:block; }
+@font-face{ font-family:'Montserrat'; src:url('fonts/Montserrat-600.woff2') format('woff2'); font-weight:600; font-display:block; }
+@font-face{ font-family:'Montserrat'; src:url('fonts/Montserrat-700.woff2') format('woff2'); font-weight:700; font-display:block; }
+@font-face{ font-family:'Nastaliq'; src:url('fonts/NotoNastaliqUrdu-Regular.woff2') format('woff2'); font-weight:400; font-display:block; }
+
+.sheet{
+  --lh-top:24mm; --lh-bottom:15.5mm; --safety:3.5mm; --side:16mm;
+  --blk-gap:3.2mm; --row-gap:2.6mm; --sec-gap:2.6mm; --drug-pad:1.4mm; --line-h:5.2mm;
+  --bar:#3F5D70;        /* dark dusty blue — bars, name, table headers   */
+  --accent:#87A5BC;     /* light dusty blue — wedges, decorative marks   */
+  --accent2:#7495AE;    /* footer wedge                                  */
+  --accent-ink:#5A788D; /* blue for small text: 4.7:1 on white           */
+  --rule-lt:#CDDBE4;    /* the letterhead's thin rules                   */
+  --ink:#1E2A32; --label:#5B6B76; --rule:#A9B8C2; --th-bg:#EEF3F7;
+
+  position:relative; width:210mm; height:297mm; background:#fff; overflow:hidden;
+  font-family:'Montserrat','Helvetica Neue',Arial,sans-serif; color:var(--ink);
+}
+
+/* ---- letterhead ---- every shape is a box or a border triangle: html2canvas can't draw clip-path.
+   Wedge sizes are whole px on purpose: browsers round border widths to whole pixels
+   but not box heights, so a 24mm triangle and a 24mm box came out 0.2mm apart. */
+.lh > *{ position:absolute; }
+.lh-bar{ left:0; right:0; top:0; height:2.3mm; background:var(--bar); }
+.lh-wedge{ right:0; top:0; width:40.7mm; height:91px; background:var(--accent); }          /* 91px = 24.08mm */
+.lh-wedge::before{ content:""; position:absolute; top:0; right:100%; width:0; height:0;
+  border-bottom:91px solid var(--accent); border-left:110px solid transparent; }
+.lh-rule{ left:0; right:0; height:.28mm; background:var(--rule-lt); }
+.lh-rule.top{ top:91px; } .lh-rule.bot{ top:281.5mm; }
+.lh-name{ left:var(--side); top:6.4mm; font-size:15pt; font-weight:700; letter-spacing:.035em; line-height:1; color:var(--bar); }
+.lh-role{ left:var(--side); top:13.2mm; font-size:9pt; line-height:1; color:var(--label); }
+.lh-quals{ left:var(--side); top:17.9mm; font-size:7.8pt; line-height:1; color:var(--label); letter-spacing:.02em; }
+.lh-contact{ left:var(--side); right:var(--side); top:284.3mm; display:flex; justify-content:space-between;
+  font-size:8.4pt; line-height:1.5; color:var(--bar); }
+.lh-contact div{ display:flex; flex-direction:column; }
+.lh-contact div + div{ text-align:right; }
+.lh-foot{ left:0; right:0; bottom:0; height:11px; background:var(--bar); }                 /* 11px = 2.9mm */
+.lh-foot::before{ content:""; position:absolute; left:0; top:0; bottom:0; width:45.2mm; background:var(--accent2); }
+.lh-foot::after{ content:""; position:absolute; left:45.2mm; top:0; width:0; height:0;
+  border-bottom:11px solid var(--accent2); border-right:77px solid transparent; }
+.sheet-body{
+  position:absolute;
+  top:calc(var(--lh-top) + var(--safety));
+  left:var(--side);
+  width:calc(210mm - var(--side)*2);
+  height:calc(297mm - var(--lh-top) - var(--lh-bottom) - var(--safety)*2);
+  display:flex; flex-direction:column;
+}
+.sheet-body > *{ flex-shrink:0; }     /* blocks never squash — overflow is measured, then handled */
+
+/* auto-fit compression steps */
+.sheet.t1{ --blk-gap:2.4mm; --row-gap:2mm;   --sec-gap:2mm;   --drug-pad:1mm;  --line-h:4.8mm; }
+.sheet.t2{ --blk-gap:1.8mm; --row-gap:1.5mm; --sec-gap:1.5mm; --drug-pad:.7mm; --line-h:4.5mm; }
+.sheet.t3{ --blk-gap:1.2mm; --row-gap:1mm;   --sec-gap:1.1mm; --drug-pad:.4mm; --line-h:4.2mm; }
+
+/* ---- shared ---- */
+.s-f{ display:flex; align-items:baseline; gap:1.2mm; min-width:0; }
+.s-f .k{ font-size:6.2pt; font-weight:600; color:var(--label); letter-spacing:.04em; white-space:nowrap; }
+.s-f .v{ font-size:8.4pt; }
+.s-f.grow{ flex:1; }
+
+.s-sec{
+  display:flex; align-items:center; gap:1.8mm; margin:var(--sec-gap) 0 1.4mm;
+  font-size:7pt; font-weight:700; letter-spacing:.11em; text-transform:uppercase; color:var(--bar);
+}
+/* the letterhead's wedge — a border triangle, since html2canvas can't draw clip-path */
+.s-sec::before{ content:""; width:0; height:0; flex:0 0 auto; border-top:2.2mm solid var(--accent); border-left:2.2mm solid transparent; }
+.s-sec::after{ content:""; flex:1; height:.9pt; background:var(--rule-lt); }
+
+.s-cap{
+  background:var(--bar); color:#fff; font-size:6pt; font-weight:700;
+  letter-spacing:.14em; text-transform:uppercase; padding:.9mm 2mm;
+}
+
+/* ---- patient bar ---- */
+.s-pt{ border-bottom:.5pt solid var(--rule); padding:0 0 1.6mm; }   /* the letterhead's rule above frames it */
+.s-pt .r{ display:flex; gap:4mm; align-items:baseline; margin-bottom:1mm; }
+.s-pt .r:last-child{ margin-bottom:0; }
+.s-pt .date{ margin-left:auto; }
+.s-pt .nm .v{ font-weight:700; }        /* the patient's own name carries the sheet */
+
+/* ---- chief complaint — plain, no colour ---- */
+.s-chief{ display:flex; align-items:baseline; gap:2mm; margin-top:var(--blk-gap); }
+.s-chief .k{ font-size:6.4pt; font-weight:700; color:var(--bar); letter-spacing:.09em; white-space:nowrap; }
+.s-chief .v{ font-size:8.6pt; line-height:1.4; }
+
+/* ---- tables: vision | pressure up top, refraction at the bottom ---- */
+.s-tbl{ border:.5pt solid var(--rule); }
+.s-vp{ display:flex; gap:4mm; align-items:flex-start; margin-top:var(--blk-gap); }
+.s-vp .s-va{ width:52mm; flex:0 0 auto; }
+.s-vp .s-iop{ flex:1; min-width:0; }
+/* pinned to the bottom and centred; the free space on the page sits above it */
+.s-ref{ width:146mm; margin:auto auto 0; }
+.s-ref ~ .s-fu, .s-ref ~ .s-cont{ margin-top:2.5mm; }
+table.s-rt{ width:100%; border-collapse:collapse; }
+table.s-rt th,table.s-rt td{ border:.35pt solid var(--rule); text-align:center; padding:.4mm; }
+table.s-rt tr > :first-child{ border-left:0; } table.s-rt tr > :last-child{ border-right:0; }
+table.s-rt tr:last-child td{ border-bottom:0; }
+table.s-rt th{ font-size:5.8pt; font-weight:600; color:var(--label); background:var(--th-bg); letter-spacing:.05em; }
+table.s-rt td{ height:5mm; font-size:7.8pt; }
+table.s-rt td:first-child,table.s-rt th:first-child{ width:18mm; font-weight:700; font-size:6.2pt; color:var(--accent-ink); }
+
+/* ---- clinical: history | examination ---- */
+.s-clin{ display:flex; gap:5mm; margin-top:var(--blk-gap); }
+.s-clin > div{ flex:1; min-width:0; }
+.s-clin > div + div{ border-left:.4pt solid #DEDEDE; padding-left:5mm; }
+.s-clin > div > :first-child{ margin-top:0; }
+
+.s-row{ display:flex; align-items:baseline; gap:1.5mm; margin-bottom:var(--row-gap); }
+.s-row:last-child{ margin-bottom:0; }
+.s-row .k{ width:20mm; flex:0 0 auto; font-size:6pt; font-weight:600; color:var(--label); letter-spacing:.04em; }
+.s-row .v{ flex:1; font-size:8pt; line-height:1.4; min-width:0; }
+.s-row.full .k{ width:auto; }
+.s-eyes{ flex:1; display:flex; gap:2mm; min-width:0; }
+.s-eyes > span{ flex:1; min-width:0; font-size:8pt; }
+.s-eyes b{ font-size:6.2pt; color:var(--accent-ink); font-weight:700; margin-right:.8mm; }
+
+
+/* ---- investigations: ocular and systemic, two separate boxes ---- */
+.s-inv{ display:flex; gap:4mm; margin-top:var(--blk-gap); }
+.s-box{ flex:1; min-width:0; border:.5pt solid var(--rule); }
+.s-box .v{ font-size:8pt; line-height:1.45; padding:1.3mm 2mm 1.5mm; }
+
+/* ---- procedure ---- */
+.s-proc{ margin-top:var(--blk-gap); }
+.s-proc .s-sec{ margin-top:0; }
+.s-proc .v{ font-size:8pt; line-height:1.45; }
+
+/* ---- Rx — last block, full width: drug on the left, Urdu dosage on the right ---- */
+.s-rx{ margin-top:var(--blk-gap); }
+.s-rx-h{
+  display:flex; align-items:center; gap:2.5mm; margin-bottom:.6mm;
+  font-family:Georgia,'Times New Roman',serif; font-size:17pt; font-weight:700; line-height:1; color:var(--bar);
+}
+.s-rx-h i{ font-style:normal; color:var(--accent-ink); font-size:11pt; }
+.s-rx-h small{ font-family:'Montserrat',sans-serif; font-size:6.5pt; font-weight:600; color:var(--label); letter-spacing:.1em; text-transform:uppercase; }
+.s-rx-h::after{ content:""; flex:1; height:.9pt; background:var(--rule-lt); }
+.s-drug{
+  display:grid; grid-template-columns:64mm 1fr; column-gap:4mm; align-items:start;
+  padding:var(--drug-pad) 0; border-bottom:.35pt dotted var(--rule);
+}
+.s-drug:last-child{ border-bottom:0; }
+.s-drug .nm{ display:flex; gap:1.6mm; align-items:baseline; padding-top:1.3mm; }
+.s-drug .no{ font-size:7.5pt; font-weight:700; color:var(--accent-ink); }
+.s-drug .t{ font-size:8.4pt; font-weight:600; }
+.s-dose{ font-family:'Nastaliq',serif; direction:rtl; text-align:right; font-size:8.2pt; line-height:1.95; color:#2a2a2a; }
+
+/* ---- hidayat — Urdu instructions under the Rx ----
+   Mirrored heading (rule first, then the word, then a right-pointing wedge)
+   because the block reads right to left. No letter-spacing anywhere near
+   Nastaliq: it breaks the joins, and html2canvas then draws it letter by letter. */
+.s-hid{ margin-top:var(--blk-gap); }
+.s-hid .h{ display:flex; align-items:center; gap:2.5mm; margin-bottom:.8mm; }
+.s-hid .h::before{ content:""; flex:1; height:.9pt; background:var(--rule-lt); }
+.s-hid .h::after{ content:""; width:0; height:0; flex:0 0 auto;
+  border-top:2.2mm solid var(--accent); border-right:2.2mm solid transparent; }
+.s-hid .h b{ font-family:'Nastaliq',serif; font-size:9.5pt; font-weight:400; line-height:1.9; color:var(--bar); }
+.s-hid .h small{ font-family:'Montserrat',sans-serif; font-size:6.5pt; font-weight:600; color:var(--label); letter-spacing:.1em; text-transform:uppercase; }
+.s-hid .v{ font-family:'Nastaliq',serif; direction:rtl; text-align:right; font-size:8.2pt; line-height:1.95; color:#2a2a2a; }
+/* these instructions run long, so each one gets a bullet and a hanging indent —
+   without it a wrapped line reads as a separate instruction */
+.s-hid .li{ display:flex; gap:1.8mm; align-items:baseline; }
+.s-hid .li::before{ content:"•"; flex:0 0 auto; font-family:'Montserrat',sans-serif; font-size:9pt; line-height:1; color:var(--accent-ink); }
+.s-hid .sub{ color:var(--bar); margin-top:.6mm; }
+.s-hid .li + .sub{ margin-top:1.4mm; }
+
+/* ---- bottom strip: follow-up, or "continued" when it spills ---- */
+.s-gap{ height:2.5mm; }
+.s-fu, .s-cont{ margin-top:auto; border-top:1.6pt solid var(--bar); padding-top:1.4mm; }
+.s-fu{ display:flex; align-items:baseline; gap:3mm; }
+.s-fu .note{ margin-left:auto; font-size:6.2pt; color:var(--label); font-style:italic; }
+.s-cont{ text-align:right; font-size:6.4pt; color:var(--label); font-style:italic; }
+
+/* ---- page 2 ---- */
+.p2c{ flex:1 0 auto; display:flex; flex-direction:column; }   /* lets a moved refraction table pin to the bottom */
+.s-p2h{ display:flex; gap:5mm; align-items:baseline; border-bottom:.5pt solid var(--rule); padding:0 0 1.5mm; }
+.s-p2h .pg{ margin-left:auto; font-size:6.2pt; font-weight:600; color:var(--label); letter-spacing:.08em; }

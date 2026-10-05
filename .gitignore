@@ -1,0 +1,9 @@
+# generated test output — PDFs and PNGs rewritten on every run
+.qa-test/out/
+.qa-test/prof-*/
+.qa/out-*.pdf
+.qa/prof-*/
+
+# OS noise
+.DS_Store
+Thumbs.db
