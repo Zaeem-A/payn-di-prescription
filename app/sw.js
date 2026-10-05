@@ -1,6 +1,6 @@
 /* Offline cache. Cache-first: the app opens with no signal.
    Bump CACHE whenever any file changes, or phones keep the old copy. */
-const CACHE = 'rx-v10';
+const CACHE = 'rx-v12';
 const ASSETS = [
   './', 'index.html', 'app.css', 'sheet.css', 'app.js', 'manifest.webmanifest',
   'assets/icon-192.png', 'assets/icon-512.png',

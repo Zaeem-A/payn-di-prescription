@@ -81,6 +81,11 @@ main{ padding:12px 12px calc(28px + var(--safe-b)); max-width:620px; margin:0 au
 .chip.on{ background:var(--bar); color:#fff; border-color:var(--bar); }
 .chip.ur{ font-family:'Nastaliq',serif; direction:rtl; font-size:14px; line-height:2; padding:6px 14px 10px; }
 .chips.tight{ margin-bottom:8px; }
+/* a field with its unit beside it: age + M/Y */
+.unitrow{ display:flex; gap:8px; align-items:stretch; }
+.unitrow input[type=text]{ flex:1; min-width:0; }
+.unitrow .chips{ flex:0 0 auto; gap:6px; }
+.unitrow .chip{ min-width:46px; display:flex; align-items:center; justify-content:center; padding:9px 10px; font-weight:600; }
 .chips.tight .chip{ padding:7px 16px; min-height:38px; }
 
 /* ---------- hidayat ---------- */

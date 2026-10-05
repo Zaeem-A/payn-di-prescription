@@ -33,11 +33,18 @@
         </div>
         <input type="text" id="p-rel" autocomplete="off" placeholder="Father / husband name">
       </div>
-      <div class="grid">
-        <!-- one field: sex is typed here as M or F, so the keyboard must have letters -->
-        <div class="f"><label for="p-age">Age &amp; sex</label><input type="text" id="p-age" autocomplete="off" placeholder="58 F"></div>
-        <div class="f"><label for="p-mr">MR No.</label><input type="text" id="p-mr" autocomplete="off"></div>
+      <!-- one field: sex is typed here as M or F, so the keyboard must have letters.
+           M / Y set the unit, so an infant can be 6 m without typing the word -->
+      <div class="f"><label for="p-age">Age &amp; sex</label>
+        <div class="unitrow">
+          <input type="text" id="p-age" autocomplete="off" placeholder="58 F">
+          <div class="chips" data-single="ageunit" data-sticky>
+            <button class="chip" data-v="m">M</button>
+            <button class="chip" data-v="y">Y</button>
+          </div>
+        </div>
       </div>
+      <div class="f"><label for="p-mr">MR No.</label><input type="text" id="p-mr" autocomplete="off"></div>
       <div class="f"><label for="p-addr">Address</label><input type="text" id="p-addr" autocomplete="off"></div>
     </div>
   </details>

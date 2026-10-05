@@ -29,7 +29,14 @@ const UR = {
   end:   ['جاری رکھیں', 'پھر بند کر دیں'],
 };
 
-const EXAM = [['lens', 'Lens'], ['ac', 'AC'], ['cornea', 'Cornea'], ['conj', 'Conjunctiva'], ['vit', 'Vitreous'], ['fundus', 'Fundus']];
+/* The doctor's examination order, front of the eye to the back. The form and
+   the printed sheet are both generated from this list, so the order is set
+   here once; a row the doctor leaves empty never reaches the patient's copy. */
+const EXAM = [
+  ['eyelid', 'Eyelid'], ['adnexa', 'Adnexa'], ['conj', 'Conjunctiva'], ['sclera', 'Sclera'],
+  ['cornea', 'Cornea'], ['ac', 'AC'], ['iris', 'Iris'], ['lens', 'Lens'],
+  ['vit', 'Vitreous'], ['fundus', 'Fundus'],
+];
 
 /* ---------- Hidayat — one button fills in a ready-made set --------------
    Transcribed from the doctor's own printed cards (Sept 2026). Two things
@@ -109,7 +116,7 @@ const HIDAYAT = [
 /* ---------- state ---------- */
 const newStep = () => ({ freq: '', times: [], eye: '', dur: '', unit: 'din', text: null });
 const newDrug = () => ({ name: '', form: 'drops', steps: [newStep()], end: '' });
-const S = { rel: '', drugs: [newDrug()] };      // rel: S/o · W/o · D/o, or none
+const S = { rel: '', ageunit: 'y', drugs: [newDrug()] };   // rel: S/o · W/o · D/o, or none
 
 /* One taper step -> one Urdu line. `text` holds a hand edit; any button
    press clears it, so buttons rebuild and typing tweaks afterwards. */
@@ -161,10 +168,14 @@ const cfVal = id => {
 /* ============================================================
    FORM — generated rows
    ============================================================ */
+/* RAPD closes the examination: one box, not a pair, because it is recorded
+   for the affected eye ("+ve right eye") rather than eye by eye */
 $('#exam').innerHTML = EXAM.map(([k, lab]) => `
   <div class="f"><label>${lab}</label>
     <div class="eyepair"><b>R</b><input type="text" id="ex-${k}-r" autocomplete="off"><b>L</b><input type="text" id="ex-${k}-l" autocomplete="off"></div>
-  </div>`).join('');
+  </div>`).join('')
+  + `<div class="f"><label for="ex-rapd">RAPD</label>
+       <input type="text" id="ex-rapd" autocomplete="off" placeholder="e.g. +ve right eye"></div>`;
 
 $('#refr').innerHTML = [['r', 'Right eye'], ['l', 'Left eye']].map(([e, lab]) => `
   <div class="f"><label>${lab}</label>
@@ -184,14 +195,18 @@ document.addEventListener('click', e => {
   if (b) b.textContent = b.textContent === '−' ? '+' : '−';
 });
 
-/* one-of-these chips (S/o · W/o · D/o) — tapping the chosen one again clears it,
-   because plenty of patients need no relation printed at all */
-$$('[data-single]').forEach(box => box.addEventListener('click', e => {
-  const c = e.target.closest('.chip'); if (!c) return;
-  const k = box.dataset.single;
-  S[k] = S[k] === c.dataset.v ? '' : c.dataset.v;
-  $$('.chip', box).forEach(x => x.classList.toggle('on', x.dataset.v === S[k]));
-}));
+/* one-of-these chips. S/o · W/o · D/o clears when you tap the chosen one again,
+   because plenty of patients need no relation printed at all; a `data-sticky`
+   group (the age unit) always keeps one chosen. */
+$$('[data-single]').forEach(box => {
+  const k = box.dataset.single, paint = () => $$('.chip', box).forEach(x => x.classList.toggle('on', x.dataset.v === S[k]));
+  box.addEventListener('click', e => {
+    const c = e.target.closest('.chip'); if (!c) return;
+    S[k] = (S[k] === c.dataset.v && !box.hasAttribute('data-sticky')) ? '' : c.dataset.v;
+    paint();
+  });
+  paint();
+});
 
 /* ---------- Hidayat ---------- */
 $('#hid-sets').innerHTML = HIDAYAT.map((h, i) => `<button class="chip" data-hid="${i}">+ ${esc(h.label)}</button>`).join('')
@@ -404,9 +419,10 @@ const LETTERHEAD = `<div class="lh">
 function sheetHTML(stamp){
   const f = (k, v, cls = '') => v ? `<div class="s-f ${cls}">${k ? `<span class="k">${k}</span>` : ''}<span class="v">${esc(v)}</span></div>` : '';
   const eyes = (r, l) => `<div class="s-eyes"><span>${r ? `<b>(R)</b>${esc(r)}` : ''}</span><span>${l ? `<b>(L)</b>${esc(l)}` : ''}</span></div>`;
-  /* age is typed with the sex beside it ("58 F"), so only a bare number gets the y */
-  const age = val('p-age');
-  const ageOut = /^\d+$/.test(age) ? age + ' y' : age;
+  /* age is typed with the sex beside it ("58 F"); the number takes the M/Y unit
+     and anything else he typed follows it — "58 F" + Y prints as "58 y F" */
+  const age = val('p-age'), am = age.match(/^(\d+)\s*(.*)$/);
+  const ageOut = am ? `${am[1]} ${S.ageunit}${am[2] ? ' ' + am[2] : ''}` : age;
 
   const pt = `<div class="s-pt">
       <div class="r">${f('NAME', val('p-name'), 'grow nm')}${f(S.rel, val('p-rel'), 'grow')}${f('AGE', ageOut)}</div>
@@ -438,8 +454,9 @@ function sheetHTML(stamp){
   if (hist.length) c1.push('<div class="s-sec">History</div>' +
     hist.map(([k, id]) => `<div class="s-row full"><span class="k">${k}</span><span class="v">${br(val(id))}</span></div>`).join(''));
   const ex = EXAM.filter(([k]) => val(`ex-${k}-r`) || val(`ex-${k}-l`));
-  if (ex.length) c2.push('<div class="s-sec">Examination</div>' +
-    ex.map(([k, lab]) => `<div class="s-row"><span class="k">${lab.toUpperCase()}</span>${eyes(val(`ex-${k}-r`), val(`ex-${k}-l`))}</div>`).join(''));
+  const rapd = val('ex-rapd') ? `<div class="s-row"><span class="k">RAPD</span><span class="v">${esc(val('ex-rapd'))}</span></div>` : '';
+  if (ex.length || rapd) c2.push('<div class="s-sec">Examination</div>' +
+    ex.map(([k, lab]) => `<div class="s-row"><span class="k">${lab.toUpperCase()}</span>${eyes(val(`ex-${k}-r`), val(`ex-${k}-l`))}</div>`).join('') + rapd);
   const cols = [c1, c2].filter(c => c.length);
   const clin = cols.length ? `<div class="s-clin">${cols.map(c => `<div>${c.join('')}</div>`).join('')}</div>` : '';
 
