@@ -86,15 +86,15 @@ try:
     }; 1""")
 
 
-    ORDER = ['Eyelid', 'Adnexa', 'Conjunctiva', 'Sclera', 'Cornea', 'AC', 'Iris', 'Lens', 'Vitreous', 'Fundus']
+    ORDER = ['Lid / Adnexa', 'Conjunctiva', 'Sclera', 'Cornea', 'AC', 'Iris', 'Lens', 'Vitreous', 'Fundus']
     form = ev("[...document.querySelectorAll('#exam .f > label')].map(l=>l.textContent.trim())")
-    check('form shows all ten plus RAPD, in order', form == ORDER + ['RAPD'], ' → '.join(form))
+    check('form shows every row plus RAPD, in order', form == ORDER + ['RAPD'], ' → '.join(form))
     ids = ev("[...document.querySelectorAll('#exam input')].map(i=>i.id)")
-    want = [f'ex-{k}-{e}' for k in ['eyelid','adnexa','conj','sclera','cornea','ac','iris','lens','vit','fundus'] for e in ('r','l')] + ['ex-rapd']
-    check('ten R/L pairs plus the single RAPD box', ids == want, f'{len(ids)} inputs' + ('' if ids == want else ' — got ' + ', '.join(ids)))
+    want = [f'ex-{k}-{e}' for k in ['lid','conj','sclera','cornea','ac','iris','lens','vit','fundus'] for e in ('r','l')] + ['ex-rapd']
+    check('nine R/L pairs plus the single RAPD box', ids == want, f'{len(ids)} inputs' + ('' if ids == want else ' — got ' + ', '.join(ids)))
 
     # fill every row, both eyes, and check the printed order
-    ev("""(()=>{const keys=['eyelid','adnexa','conj','sclera','cornea','ac','iris','lens','vit','fundus'];
+    ev("""(()=>{const keys=['lid','conj','sclera','cornea','ac','iris','lens','vit','fundus'];
       keys.forEach((k,i)=>{['r','l'].forEach(e=>{const el=document.getElementById('ex-'+k+'-'+e);
         el.value = k.toUpperCase()+'-'+e.toUpperCase(); el.dispatchEvent(new Event('input',{bubbles:true}));});});
       T.set('p-name','Muhammad Aslam'); T.set('p-age','58 M'); T.set('p-mr','TN-04182');
@@ -105,7 +105,7 @@ try:
     ev("T.$('#preview').click()"); ev("T.pdf()")
     printed = ev("[...document.querySelectorAll('#live .pg1 .s-row .k')].map(k=>k.textContent.trim()).filter(t=>!['SYSTEMIC','OCULAR'].includes(t))")
     check('printed sheet keeps that order', printed == [x.upper() for x in ORDER], ' → '.join(printed))
-    check('all ten rows print with both eyes', ev("[...document.querySelectorAll('#live .pg1 .s-eyes')].filter(e=>e.textContent.includes('-R')&&e.textContent.includes('-L')).length") == 10)
+    check('every row prints with both eyes', ev("[...document.querySelectorAll('#live .pg1 .s-eyes')].filter(e=>e.textContent.includes('-R')&&e.textContent.includes('-L')).length") == 9)
     check('it still fits', ev("document.getElementById('pv-warn').hidden"), f"pages={ev('RxApp.pages()')}")
     save_pdf('15-exam-order')
     ev("history.back()"); time.sleep(0.3)
@@ -121,7 +121,7 @@ try:
     ev("history.back()"); time.sleep(0.3)
 
     # a normal visit only fills a few rows: the rest must not print
-    ev("""(()=>{['eyelid','adnexa','conj','sclera','cornea','ac','iris','lens','vit','fundus'].forEach(k=>['r','l'].forEach(e=>{
+    ev("""(()=>{['lid','conj','sclera','cornea','ac','iris','lens','vit','fundus'].forEach(k=>['r','l'].forEach(e=>{
         const el=document.getElementById('ex-'+k+'-'+e); el.value=''; el.dispatchEvent(new Event('input',{bubbles:true}));}));
       T.set('ex-lens-r','PCIOL in bag'); T.set('ex-fundus-r','Attached, PRP scars'); T.set('ex-cornea-l','Clear');})()""")
     ev("T.$('#preview').click()"); ev("T.pdf()")

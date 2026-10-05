@@ -119,7 +119,9 @@ table.s-rt td:first-child,table.s-rt th:first-child{ width:18mm; font-weight:700
 
 .s-row{ display:flex; align-items:baseline; gap:1.5mm; margin-bottom:var(--row-gap); }
 .s-row:last-child{ margin-bottom:0; }
-.s-row .k{ width:20mm; flex:0 0 auto; font-size:6pt; font-weight:600; color:var(--label); letter-spacing:.04em; }
+/* nowrap: "LID / ADNEXA" fills the 20mm column exactly, so a font fallback
+   inside the html2canvas clone would otherwise wrap it and shift every row */
+.s-row .k{ width:20mm; flex:0 0 auto; font-size:6pt; font-weight:600; color:var(--label); letter-spacing:.04em; white-space:nowrap; }
 .s-row .v{ flex:1; font-size:8pt; line-height:1.4; min-width:0; }
 .s-row.full .k{ width:auto; }
 .s-eyes{ flex:1; display:flex; gap:2mm; min-width:0; }
@@ -127,9 +129,9 @@ table.s-rt td:first-child,table.s-rt th:first-child{ width:18mm; font-weight:700
 .s-eyes b{ font-size:6.2pt; color:var(--accent-ink); font-weight:700; margin-right:.8mm; }
 
 
-/* ---- investigations: ocular and systemic, two separate boxes ---- */
-.s-inv{ display:flex; gap:4mm; margin-top:var(--blk-gap); }
-.s-box{ flex:1; min-width:0; border:.5pt solid var(--rule); }
+/* ---- investigations: ocular first, systemic stacked underneath ---- */
+.s-inv{ display:flex; flex-direction:column; gap:1.8mm; margin-top:var(--blk-gap); }
+.s-box{ min-width:0; border:.5pt solid var(--rule); }
 .s-box .v{ font-size:8pt; line-height:1.45; padding:1.3mm 2mm 1.5mm; }
 
 /* ---- procedure ---- */

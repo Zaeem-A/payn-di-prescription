@@ -33,7 +33,7 @@ const UR = {
    the printed sheet are both generated from this list, so the order is set
    here once; a row the doctor leaves empty never reaches the patient's copy. */
 const EXAM = [
-  ['eyelid', 'Eyelid'], ['adnexa', 'Adnexa'], ['conj', 'Conjunctiva'], ['sclera', 'Sclera'],
+  ['lid', 'Lid / Adnexa'], ['conj', 'Conjunctiva'], ['sclera', 'Sclera'],
   ['cornea', 'Cornea'], ['ac', 'AC'], ['iris', 'Iris'], ['lens', 'Lens'],
   ['vit', 'Vitreous'], ['fundus', 'Fundus'],
 ];
@@ -239,6 +239,7 @@ function recalcIop(e){
   out.value = String(Math.round((pre + (isNaN(cf) ? 0 : cf)) * 10) / 10);
 }
 $('main').addEventListener('input', e => {
+  if (e.target.id === 'p-cnic') return cnicMask(e.target, e.inputType);
   const m = e.target.id?.match(/^iop-([rl])-(pre|cf|final)$/); if (!m) return;
   if (m[2] === 'final') e.target.dataset.manual = e.target.value.trim() ? '1' : '';
   recalcIop(m[1]);
@@ -247,6 +248,33 @@ $('main').addEventListener('click', e => {          // the ± button flips the s
   const m = e.target.closest('[data-sign]')?.dataset.sign.match(/^iop-([rl])-cf$/);
   if (m) setTimeout(() => recalcIop(m[1]), 0);      // after the generic handler has flipped it
 });
+
+/* CNIC is 13 digits in 5-7-1 groups. He types digits on the number pad and the
+   hyphens appear as he goes, so the pad never has to be left.
+   Rewriting the value moves the caret to the end, which would quietly turn a
+   corrected digit into a different national ID — so the caret is counted in
+   digits and put back where he was. Backspace onto an auto-inserted hyphen
+   would otherwise do nothing visible, so it takes the digit in front of it. */
+const cnicFmt = d => d.length > 12 ? `${d.slice(0, 5)}-${d.slice(5, 12)}-${d.slice(12)}`
+                   : d.length > 5  ? `${d.slice(0, 5)}-${d.slice(5)}`
+                   : d;
+
+function cnicMask(el, inputType){
+  const caret = el.selectionStart ?? el.value.length;
+  let digits = el.value.replace(/\D/g, '').slice(0, 13);
+  let before = el.value.slice(0, caret).replace(/\D/g, '').length;
+
+  if (inputType === 'deleteContentBackward' && digits.length === +el.dataset.n && before > 0){
+    digits = digits.slice(0, before - 1) + digits.slice(before);   // the hyphen was already there
+    before--;
+  }
+  el.dataset.n = digits.length;
+  el.value = cnicFmt(digits);
+
+  let i = 0, seen = 0;
+  while (i < el.value.length && seen < before) if (/\d/.test(el.value[i++])) seen++;
+  el.setSelectionRange(i, i);
+}
 
 /* Enter on a one-line field moves to the next visible field */
 $('main').addEventListener('keydown', e => {
@@ -426,7 +454,7 @@ function sheetHTML(stamp){
 
   const pt = `<div class="s-pt">
       <div class="r">${f('NAME', val('p-name'), 'grow nm')}${f(S.rel, val('p-rel'), 'grow')}${f('AGE', ageOut)}</div>
-      <div class="r">${f('ADDRESS', val('p-addr'), 'grow')}${f('MR NO.', val('p-mr'))}${f('DATE', stamp, 'date')}</div>
+      <div class="r">${f('ADDRESS', val('p-addr'), 'grow')}${f('MR NO.', val('p-mr'))}${f('CNIC', val('p-cnic'))}${f('DATE', stamp, 'date')}</div>
     </div>`;
   const chief = val('chief') ? `<div class="s-chief"><span class="k">CHIEF COMPLAINT</span><span class="v">${br(val('chief'))}</span></div>` : '';
 
@@ -492,7 +520,8 @@ function sheetHTML(stamp){
       <div class="s-gap"></div>${ref}<div class="s-cont" hidden></div>${fu}
     </div></div>
     <div class="sheet pgc" hidden>${LETTERHEAD}<div class="sheet-body">
-      <div class="s-p2h">${f('NAME', val('p-name'))}${f('MR NO.', val('p-mr'))}${f('DATE', stamp)}<span class="pg"></span></div>
+      <!-- page 2 can be separated from page 1, so it carries the identifiers too -->
+      <div class="s-p2h">${f('NAME', val('p-name'))}${f('MR NO.', val('p-mr'))}${f('CNIC', val('p-cnic'))}${f('DATE', stamp)}<span class="pg"></span></div>
       <div class="p2c"></div>
       <div class="s-gap"></div><div class="s-cont" hidden></div>
     </div></div>`;
