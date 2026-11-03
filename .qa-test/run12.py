@@ -93,7 +93,7 @@ try:
         ev(f"T.set('p-age', {json.dumps(typed)})")
         ev(f"[...document.querySelectorAll('[data-single=\"ageunit\"] .chip')].find(c=>c.textContent.trim()==='{unit}').click()")
         ev("T.set('p-name','Muhammad Aslam'); T.set('chief','Review')")
-        ev("T.$('#preview').click()")
+        ev("T.$('#preview').click()"); ev("T.pdf()")      # wait for the preview to open before reading it
         out = ev("[...document.querySelectorAll('#live .pg1 .s-pt .s-f')].map(f=>(f.querySelector('.k')?.textContent||'')+'='+f.querySelector('.v').textContent).find(t=>t.startsWith('AGE'))")
         ev("history.back()"); time.sleep(0.25)
         return out

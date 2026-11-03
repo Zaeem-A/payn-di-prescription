@@ -118,6 +118,12 @@ const newStep = () => ({ freq: '', times: [], eye: '', dur: '', unit: 'din', tex
 const newDrug = () => ({ name: '', form: 'drops', steps: [newStep()], end: '' });
 const S = { rel: '', ageunit: 'y', drugs: [newDrug()] };   // rel: S/o · W/o · D/o, or none
 
+/* One id per prescription. New reloads the page, which starts a new one; the
+   visit it records is updated, never duplicated, if it is sent twice. */
+const SESSION = crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`;
+let REC = false;      // are the patient records usable in this browser?
+let VISIT = null;     // this prescription's visit number, worked out at preview
+
 /* One taper step -> one Urdu line. `text` holds a hand edit; any button
    press clears it, so buttons rebuild and typing tweaks afterwards. */
 function composeStep(st, j, form){
@@ -198,6 +204,7 @@ document.addEventListener('click', e => {
 /* one-of-these chips. S/o · W/o · D/o clears when you tap the chosen one again,
    because plenty of patients need no relation printed at all; a `data-sticky`
    group (the age unit) always keeps one chosen. */
+const painters = {};
 $$('[data-single]').forEach(box => {
   const k = box.dataset.single, paint = () => $$('.chip', box).forEach(x => x.classList.toggle('on', x.dataset.v === S[k]));
   box.addEventListener('click', e => {
@@ -205,8 +212,11 @@ $$('[data-single]').forEach(box => {
     S[k] = (S[k] === c.dataset.v && !box.hasAttribute('data-sticky')) ? '' : c.dataset.v;
     paint();
   });
+  painters[k] = paint;
   paint();
 });
+/* sets a chip group from code — a returning patient's S/o or M/Y */
+const setSingle = (k, v) => { S[k] = v; painters[k]?.(); };
 
 /* ---------- Hidayat ---------- */
 $('#hid-sets').innerHTML = HIDAYAT.map((h, i) => `<button class="chip" data-hid="${i}">+ ${esc(h.label)}</button>`).join('')
@@ -283,6 +293,121 @@ $('main').addEventListener('keydown', e => {
   const all = $$('main input, main textarea').filter(el => el.offsetParent);
   const next = all[all.indexOf(e.target) + 1];
   if (next) next.focus(); else e.target.blur();
+});
+
+/* ============================================================
+   PATIENT RECORDS — find a returning patient, give a new one an MR
+   number, back the records up. Storage itself lives in records.js.
+   ============================================================ */
+const PATIENT_IDS = ['p-name', 'p-rel', 'p-age', 'p-mr', 'p-cnic', 'p-phone', 'p-addr'];
+const sameName = (a, b) => String(a).trim().toLowerCase().replace(/\s+/g, ' ') === String(b).trim().toLowerCase().replace(/\s+/g, ' ');
+
+const patientFromForm = () => ({
+  mr: val('p-mr'), name: val('p-name'), rel_kind: S.rel, rel_name: val('p-rel'),
+  age: val('p-age'), age_unit: S.ageunit, phone: val('p-phone'), cnic: val('p-cnic'), address: val('p-addr'),
+});
+/* the whole prescription as sent, so it can be reprinted or repeated later */
+const snapshot = () => ({
+  fields: Object.fromEntries($$('main input[id], main textarea[id]').filter(el => el.id !== 'p-find').map(el => [el.id, el.value])),
+  signs:  Object.fromEntries($$('[data-sign]').map(b => [b.dataset.sign, b.textContent])),
+  state:  JSON.parse(JSON.stringify(S)),
+});
+
+let findT;
+$('#p-find').addEventListener('input', e => {
+  clearTimeout(findT);
+  findT = setTimeout(async () => showHits(await Records.search(e.target.value).catch(() => [])), 150);
+});
+/* Enter takes the first match, instead of jumping to the next field */
+$('#p-find').addEventListener('keydown', e => {
+  if (e.key !== 'Enter') return;
+  e.preventDefault(); e.stopPropagation();
+  $('#p-hits .hit')?.click();
+});
+
+function showHits(list){
+  const box = $('#p-hits'), q = val('p-find');
+  box.hidden = !q;
+  if (!q) return;
+  box.innerHTML = list.length ? list.map(p => `
+    <button type="button" class="hit" data-mr="${esc(p.mr)}">
+      <b>${esc(p.name)}</b>
+      <span>MR ${esc(p.mr)}${p.phone ? ` · ${esc(p.phone)}` : ''}</span>
+      <small>${p.last_visit_no || 0} visit${p.last_visit_no === 1 ? '' : 's'}${p.last_visit ? ` · last ${fmtDate(new Date(p.last_visit))}` : ''}</small>
+    </button>`).join('') : '<div class="none">No patient found</div>';
+}
+
+$('#p-hits').addEventListener('click', async e => {
+  const b = e.target.closest('.hit'); if (!b) return;
+  loadPatient(await Records.get(b.dataset.mr));
+});
+
+function loadPatient(p){
+  if (!p) return;
+  const put = (id, v) => { $('#' + id).value = v ?? ''; };
+  put('p-name', p.name); put('p-rel', p.rel_name); put('p-age', p.age); put('p-mr', p.mr);
+  put('p-phone', p.phone); put('p-addr', p.address);
+  put('p-cnic', p.cnic); cnicMask($('#p-cnic'));
+  setSingle('rel', p.rel_kind || ''); setSingle('ageunit', p.age_unit || 'y');
+  $('#p-find').value = ''; $('#p-hits').hidden = true;
+  const ret = $('#p-ret');
+  ret.hidden = false;
+  ret.innerHTML = `<span>Returning patient — last seen ${p.last_visit ? fmtDate(new Date(p.last_visit)) : '—'} · this is visit ${(p.last_visit_no || 0) + 1}</span>
+    <button type="button" id="p-ret-x" aria-label="Not this patient">×</button>`;
+}
+
+/* × on the returning line: wrong patient — empty the patient fields again */
+$('#p-ret').addEventListener('click', e => {
+  if (!e.target.closest('#p-ret-x')) return;
+  PATIENT_IDS.forEach(id => { $('#' + id).value = ''; });
+  setSingle('rel', ''); setSingle('ageunit', 'y');
+  $('#p-ret').hidden = true;
+  $('#p-find').focus();
+});
+
+$('#mr-new').onclick = async () => {
+  if (val('p-mr') && !confirm(`Replace MR ${val('p-mr')} with a new number?`)) return;
+  try { $('#p-mr').value = await Records.reserveMr(); }
+  catch (err){ toast('Could not create an MR number: ' + err.message, 4000); }
+};
+
+/* ---------- the Records panel: counts and backup ---------- */
+async function refreshStats(){
+  const s = await Records.stats();
+  const days = s.lastBackup ? Math.floor((Date.now() - new Date(s.lastBackup)) / 864e5) : null;
+  const when = days === null ? 'never' : days === 0 ? 'today' : days === 1 ? 'yesterday' : `${days} days ago`;
+  $('#recs-stats').innerHTML = `<b>${s.patients}</b> patient${s.patients === 1 ? '' : 's'} · <b>${s.visits}</b> visit${s.visits === 1 ? '' : 's'}<br>Last backup: <b>${when}</b>`;
+}
+$('#records').onclick = async () => { await refreshStats(); $('#recs').classList.add('on'); };
+$('#recs-close').onclick = () => $('#recs').classList.remove('on');
+$('#recs-export').onclick = async () => {
+  try {
+    const blob = await Records.exportAll();
+    const a = Object.assign(document.createElement('a'), {
+      href: URL.createObjectURL(blob), download: `patient-records-${fmtDate(new Date()).replace(/\//g, '-')}.json` });
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+    await refreshStats();
+    toast('Backup saved to your Downloads folder', 3500);
+  } catch (err){ toast('Could not export: ' + err.message, 5000); }
+};
+$('#recs-import').onclick = () => $('#recs-file').click();
+$('#recs-file').onchange = async e => {
+  const file = e.target.files[0]; e.target.value = '';
+  if (!file) return;
+  try {
+    const r = await Records.importAll(await file.text());
+    await refreshStats();
+    toast(`Restored ${r.patients} new patient${r.patients === 1 ? '' : 's'} and ${r.visits} new visit${r.visits === 1 ? '' : 's'}`, 4500);
+  } catch (err){ toast('Could not restore: ' + err.message, 5000); }
+};
+
+/* If this browser can't keep records, say so once and get out of the way:
+   a prescription is never blocked by the records. */
+Records.available().then(ok => {
+  REC = ok;
+  $('#rec-warn').hidden = ok;
+  ['p-find', 'mr-new', 'records'].forEach(id => { $('#' + id).disabled = !ok; });
 });
 
 /* ============================================================
@@ -453,7 +578,7 @@ function sheetHTML(stamp){
   const ageOut = am ? `${am[1]} ${S.ageunit}${am[2] ? ' ' + am[2] : ''}` : age;
 
   const pt = `<div class="s-pt">
-      <div class="r">${f('NAME', val('p-name'), 'grow nm')}${f(S.rel, val('p-rel'), 'grow')}${f('AGE', ageOut)}</div>
+      <div class="r">${f('NAME', val('p-name'), 'grow nm')}${f(S.rel, val('p-rel'), 'grow')}${f('AGE', ageOut)}${f('CONTACT', val('p-phone'))}</div>
       <div class="r">${f('ADDRESS', val('p-addr'), 'grow')}${f('MR NO.', val('p-mr'))}${f('CNIC', val('p-cnic'))}${f('DATE', stamp, 'date')}</div>
     </div>`;
   const chief = val('chief') ? `<div class="s-chief"><span class="k">CHIEF COMPLAINT</span><span class="v">${br(val('chief'))}</span></div>` : '';
@@ -512,7 +637,8 @@ function sheetHTML(stamp){
         ? `<div class="sub">${esc(l)}</div>`                 /* a line ending in : is a sub-heading */
         : `<div class="li">${esc(l)}</div>`).join('')}</div></div>` : '';
 
-  const fu = `<div class="s-fu">${f('FOLLOW-UP', isoToDMY(val('fu')))}<span class="note">Please bring this prescription on your next visit.</span></div>`;
+  /* the last line of the last page: follow-up, then which visit this is */
+  const fu = `<div class="s-fu">${f('FOLLOW-UP', isoToDMY(val('fu')))}${VISIT ? f('VISIT NUMBER', String(VISIT)) : ''}<span class="note">Please bring this prescription on your next visit.</span></div>`;
 
   return `
     <div class="sheet pg1">${LETTERHEAD}<div class="sheet-body">
@@ -671,6 +797,28 @@ async function openPreview(){
   const orphan = S.drugs.findIndex(d => !d.name.trim() && doseLines(d).length);
   if (orphan >= 0) toast(`Drug ${orphan + 1} has a dosage but no name — left off`, 3600);
 
+  /* Records: a new patient gets an MR, and the visit number is fixed now so the
+     sheet can print it. If the records fail, the prescription still goes out —
+     just without a visit number. */
+  VISIT = null;
+  if (REC){
+    try {
+      if (!val('p-mr')) $('#p-mr').value = await Records.reserveMr();
+      const mr = val('p-mr');
+      const [stored, prior] = await Promise.all([Records.get(mr), Records.sessionVisit(SESSION)]);
+      /* a mistyped MR would quietly overwrite another patient's details */
+      if (stored && !sameName(stored.name, val('p-name')) &&
+          !confirm(`MR ${mr} belongs to ${stored.name}.\n\nUse it for ${val('p-name')}? That patient's details will be replaced.`)){
+        const m = $('#p-mr'); m.closest('details').open = true; m.focus(); m.select();
+        return;
+      }
+      VISIT = prior && prior.mr === mr ? prior.visit_no : (stored?.last_visit_no || 0) + 1;
+    } catch (err){
+      VISIT = null;
+      toast('Records unavailable — no visit number on this one', 3500);
+    }
+  }
+
   const now = new Date();
   const html = sheetHTML(`${fmtDate(now)}  ${fmtTime(now)}`);
   $('#live').innerHTML = html;
@@ -762,15 +910,30 @@ function fileName(){
 async function share(){
   const file = new File([PDF], fileName(), { type: 'application/pdf' });
   if (navigator.canShare && navigator.canShare({ files: [file] })){
-    try { await navigator.share({ files: [file] }); toast('Sent'); }
-    catch (err){ if (err.name !== 'AbortError') toast('Could not share: ' + err.message, 4000); }
-    return;
+    try { await navigator.share({ files: [file] }); }
+    catch (err){                                   // cancelled or failed: not a visit
+      if (err.name !== 'AbortError') toast('Could not share: ' + err.message, 4000);
+      return;
+    }
+    return recordVisit('Sent');
   }
   /* desktop / unsupported browsers: hand over the file instead */
   const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(file), download: file.name });
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(a.href), 5000);
-  toast('Sharing isn’t available here — PDF downloaded instead', 4000);
+  recordVisit('PDF downloaded');
+}
+
+/* The prescription has gone out: that is what makes it a visit. */
+async function recordVisit(done){
+  if (!REC || !VISIT) return toast(done, 3000);
+  try {
+    const no = await Records.saveVisit({ session: SESSION, visitNo: VISIT, patient: patientFromForm(), snapshot: snapshot() });
+    toast(`${done} · saved as visit ${no}`, 3500);
+    Records.persist();
+  } catch (err){
+    toast(`${done}, but the record was not saved: ${err.message}`, 6000);
+  }
 }
 
 $('#preview').onclick = openPreview;
@@ -799,7 +962,7 @@ window.addEventListener('popstate', () => {
 
 /* nothing is saved, so warn before a reload or close throws the form away */
 let leaving = false;
-const dirty = () => $$('main input, main textarea').some(el => el.value.trim()) || S.drugs.some(d => d.name.trim() || doseLines(d).length);
+const dirty = () => $$('main input, main textarea').some(el => el.id !== 'p-find' && el.value.trim()) || S.drugs.some(d => d.name.trim() || doseLines(d).length);
 window.addEventListener('beforeunload', e => { if (!leaving && dirty()){ e.preventDefault(); e.returnValue = ''; } });
 $('#new').onclick = () => {
   if (dirty() && !confirm('Clear this prescription and start a new one?')) return;

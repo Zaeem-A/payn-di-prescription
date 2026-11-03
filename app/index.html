@@ -13,9 +13,11 @@
 
 <header class="top">
   <h1>Prescription<span>.</span></h1>
+  <button class="new" id="records">Records</button>
   <button class="new" id="new">New</button>
   <button class="go" id="preview">Preview</button>
 </header>
+<div class="recwarn" id="rec-warn" hidden>Records unavailable in this browser — this prescription won’t be saved and no visit number will print.</div>
 
 <main>
   <!-- sections follow the sheet's top-to-bottom order -->
@@ -24,6 +26,13 @@
   <details class="sec" open>
     <summary>Patient</summary>
     <div class="body">
+      <!-- returning patients: find them, and every field below fills itself -->
+      <div class="f find">
+        <label for="p-find">Find patient</label>
+        <input type="search" id="p-find" placeholder="MR, phone or name" autocomplete="off" spellcheck="false">
+        <div class="hits" id="p-hits" hidden></div>
+        <div class="returning" id="p-ret" hidden></div>
+      </div>
       <div class="f"><label for="p-name">Name</label><input type="text" id="p-name" autocomplete="off"></div>
       <div class="f"><label for="p-rel">S/o · W/o · D/o</label>
         <div class="chips tight" data-single="rel">
@@ -45,10 +54,13 @@
         </div>
       </div>
       <div class="grid">
-        <div class="f"><label for="p-mr">MR No.</label><input type="text" id="p-mr" autocomplete="off"></div>
+        <div class="f"><label for="p-mr">MR No.</label>
+          <div class="unitrow"><input type="text" id="p-mr" autocomplete="off"><button type="button" class="chip" id="mr-new" title="Give this patient the next MR number">New</button></div>
+        </div>
         <!-- hyphens are typed in for him, so the number pad is enough -->
         <div class="f"><label for="p-cnic">CNIC</label><input type="text" id="p-cnic" inputmode="numeric" placeholder="35202-1234567-1" autocomplete="off"></div>
       </div>
+      <div class="f"><label for="p-phone">Contact number</label><input type="tel" id="p-phone" inputmode="tel" placeholder="0300-1234567" autocomplete="off"></div>
       <div class="f"><label for="p-addr">Address</label><input type="text" id="p-addr" autocomplete="off"></div>
     </div>
   </details>
@@ -182,11 +194,24 @@
   </div>
 </div>
 
+<!-- ============ RECORDS: counts and backup ============ -->
+<div class="ask" id="recs">
+  <div class="askc">
+    <h4>Patient records</h4>
+    <p id="recs-stats">…</p>
+    <p class="fine">Kept only in this browser on this computer. Clearing the browser’s data deletes them — export a backup regularly and keep the file safe.</p>
+    <div class="askr"><button id="recs-export">Export backup</button><button id="recs-import">Import backup</button></div>
+    <div class="askr"><button class="go" id="recs-close">Close</button></div>
+    <input type="file" id="recs-file" accept="application/json,.json" hidden>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 <div id="live"></div>
 
 <script src="vendor/html2canvas.min.js"></script>
 <script src="vendor/jspdf.umd.min.js"></script>
+<script src="records.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
