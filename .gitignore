@@ -7,3 +7,6 @@
 # OS noise
 .DS_Store
 Thumbs.db
+
+# a real patient's prescription, kept locally for reference only — never commit it
+CamScanner*.pdf
